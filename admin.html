@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>스윔조스 관리자</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans KR',sans-serif;background:#f5f5f5;min-height:100vh}
+
+.login-wrap{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
+.login-box{background:#fff;border-radius:16px;padding:32px 28px;width:100%;max-width:360px;box-shadow:0 4px 24px rgba(0,0,0,.08)}
+.login-logo{font-size:36px;text-align:center;margin-bottom:8px}
+.login-title{font-size:18px;font-weight:700;color:#111;text-align:center;margin-bottom:4px}
+.login-sub{font-size:13px;color:#999;text-align:center;margin-bottom:24px}
+.login-input{width:100%;padding:13px 14px;border:1.5px solid #e8e8e8;border-radius:10px;font-size:15px;font-family:'Noto Sans KR',sans-serif;outline:none;margin-bottom:12px;transition:border-color .15s}
+.login-input:focus{border-color:#111}
+.login-btn{width:100%;padding:14px;background:#111;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif}
+.login-err{font-size:13px;color:#ef4444;text-align:center;margin-top:10px;display:none}
+
+.admin-wrap{display:none;max-width:960px;margin:0 auto;padding:20px 16px 60px}
+.admin-header{background:#fff;border-radius:12px;padding:14px 18px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.admin-title{font-size:16px;font-weight:700;color:#111}
+.admin-actions{display:flex;gap:8px}
+.btn-sm{padding:8px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Noto Sans KR',sans-serif;border:none}
+.btn-refresh{background:#f0f0f0;color:#333}
+.btn-logout{background:#111;color:#fff}
+
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+@media(max-width:600px){.stats-grid{grid-template-columns:repeat(2,1fr)}}
+.stat-card{background:#fff;border-radius:12px;padding:14px 16px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.stat-val{font-size:22px;font-weight:700;color:#111}
+.stat-label{font-size:12px;color:#999;margin-top:3px}
+.c-blue .stat-val{color:#2563eb}
+.c-red .stat-val{color:#ef4444}
+.c-green .stat-val{color:#16a34a}
+
+.admin-tabs{display:flex;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.06);margin-bottom:14px}
+.admin-tab{flex:1;padding:13px;text-align:center;font-size:14px;font-weight:500;color:#888;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s}
+.admin-tab.active{color:#111;font-weight:700;border-bottom-color:#111;background:#fafafa}
+
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+
+.filter-bar{background:#fff;border-radius:12px;padding:12px 14px;margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.filter-btn{padding:6px 14px;border-radius:20px;font-size:13px;font-weight:500;cursor:pointer;border:1.5px solid #e8e8e8;background:#fff;color:#555;font-family:'Noto Sans KR',sans-serif}
+.filter-btn.active{background:#111;color:#fff;border-color:#111}
+.filter-input{padding:7px 12px;border-radius:8px;font-size:13px;border:1.5px solid #e8e8e8;outline:none;font-family:'Noto Sans KR',sans-serif;flex:1;min-width:120px}
+
+.table-wrap{background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.06);margin-bottom:14px}
+.table-head{display:grid;grid-template-columns:100px 75px 80px 80px 110px 130px 1fr 105px;padding:11px 14px;background:#f8f8f8;border-bottom:1px solid #eee;font-size:12px;font-weight:700;color:#888;gap:8px}
+.table-row{display:grid;grid-template-columns:100px 75px 80px 80px 110px 130px 1fr 105px;padding:12px 14px;border-bottom:1px solid #f5f5f5;font-size:13px;color:#333;gap:8px;align-items:center}
+.table-row:hover{background:#fafafa}
+.table-row.cancelled{opacity:.45}
+.table-row:last-child{border-bottom:none}
+@media(max-width:750px){
+  .table-head{display:none}
+  .table-row{grid-template-columns:1fr;padding:12px 14px;gap:3px;border-radius:8px;margin-bottom:8px;border:1px solid #eee}
+  .cell::before{content:attr(data-label)': ';font-weight:700;color:#aaa;font-size:11px}
+}
+.cell{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cell.wrap{white-space:normal}
+.sbadge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700}
+.s-ok{background:#dcfce7;color:#16a34a}
+.s-cancel{background:#fee2e2;color:#ef4444}
+.btn-cancel-bk{padding:4px 10px;background:#fee2e2;color:#ef4444;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif;margin-top:4px;display:block}
+
+.card-box{background:#fff;border-radius:12px;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,.06);margin-bottom:12px}
+.row-flex{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+.fld{display:flex;flex-direction:column;gap:4px}
+.fld label{font-size:12px;font-weight:600;color:#888}
+.fld input,.fld select,.fld textarea{padding:9px 12px;border:1.5px solid #e8e8e8;border-radius:8px;font-size:13px;font-family:'Noto Sans KR',sans-serif;outline:none;background:#fff}
+.fld input:focus,.fld select:focus,.fld textarea:focus{border-color:#111}
+.fld textarea{resize:vertical;min-height:70px;line-height:1.5}
+.btn-add{padding:10px 18px;background:#111;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif;white-space:nowrap}
+.btn-add.green{background:#1a6b3a}
+.btn-add.red{background:#c0392b}
+.btn-add.gray{background:#888}
+
+.time-checks{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px}
+.time-checks label{display:flex;align-items:center;gap:4px;font-size:13px;padding:6px 10px;border:1.5px solid #e8e8e8;border-radius:6px;cursor:pointer}
+.time-checks input[type=checkbox]{accent-color:#111}
+
+.sp-card{border-radius:12px;padding:14px;border-left:4px solid #1a6b3a;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.06);margin-bottom:10px}
+.sp-card.hidden-sp{border-left-color:#ccc;opacity:.65}
+.sp-title{font-size:15px;font-weight:700;color:#111;margin-bottom:4px}
+.sp-meta{font-size:12px;color:#888;display:flex;flex-wrap:wrap;gap:10px;margin-bottom:6px}
+.sp-desc{font-size:13px;color:#555;line-height:1.6}
+.sp-actions{display:flex;gap:6px;flex-shrink:0;margin-top:8px;flex-wrap:wrap}
+.btn-edit{padding:5px 11px;background:#eff6ff;color:#2563eb;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer}
+.btn-toggle{padding:5px 11px;background:#f0fdf4;color:#16a34a;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer}
+.btn-del{padding:5px 11px;background:#fee2e2;color:#ef4444;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer}
+.vbadge{padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;margin-left:6px}
+.v-y{background:#dcfce7;color:#16a34a}
+.v-n{background:#f0f0f0;color:#999}
+
+.block-row{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:11px 14px;border-bottom:1px solid #f5f5f5;font-size:13px}
+.block-row:last-child{border-bottom:none}
+.btag{padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap}
+.tag-date{background:#fee2e2;color:#c0392b}
+.tag-slot{background:#fef3c7;color:#d97706}
+.btn-unblock{padding:4px 10px;background:#f0f0f0;color:#555;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;margin-left:auto}
+
+.empty{padding:36px;text-align:center;color:#bbb;font-size:14px}
+.loading{padding:28px;text-align:center;color:#bbb;font-size:13px}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:11px 20px;border-radius:10px;font-size:14px;font-weight:500;opacity:0;transition:opacity .3s;pointer-events:none;z-index:999;white-space:nowrap}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+
+<div class="login-wrap" id="loginWrap">
+  <div class="login-box">
+    <div class="login-logo">🏊</div>
+    <div class="login-title">스윔조스 관리자</div>
+    <div class="login-sub">예약·특강·차단을 관리하세요</div>
+    <input class="login-input" id="pw-input" type="password" placeholder="비밀번호" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="login-btn" onclick="doLogin()">로그인</button>
+    <div class="login-err" id="login-err">비밀번호가 틀렸습니다</div>
+  </div>
+</div>
+
+<div class="admin-wrap" id="adminWrap">
+  <div class="admin-header">
+    <div class="admin-title">🏊 스윔조스 관리자</div>
+    <div class="admin-actions">
+      <button class="btn-sm btn-refresh" onclick="reloadAll()">🔄 새로고침</button>
+      <button class="btn-sm btn-logout" onclick="doLogout()">로그아웃</button>
+    </div>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-card"><div class="stat-val" id="st-total">-</div><div class="stat-label">전체 예약</div></div>
+    <div class="stat-card c-blue"><div class="stat-val" id="st-active">-</div><div class="stat-label">예약완료</div></div>
+    <div class="stat-card c-red"><div class="stat-val" id="st-cancel">-</div><div class="stat-label">취소</div></div>
+    <div class="stat-card c-green"><div class="stat-val" id="st-amount">-</div><div class="stat-label">예상 입금액</div></div>
+  </div>
+
+  <div class="admin-tabs">
+    <div class="admin-tab active" onclick="switchTab(0)">📋 예약 현황</div>
+    <div class="admin-tab" onclick="switchTab(1)">🌟 특강 관리</div>
+    <div class="admin-tab" onclick="switchTab(2)">🚫 차단 관리</div>
+  </div>
+
+  <!-- 예약현황 -->
+  <div class="tab-panel active" id="tp-0">
+    <div class="filter-bar">
+      <button class="filter-btn active" onclick="setFilter('all',this)">전체</button>
+      <button class="filter-btn" onclick="setFilter('예약완료',this)">예약완료</button>
+      <button class="filter-btn" onclick="setFilter('취소',this)">취소</button>
+      <button class="filter-btn" onclick="setFilter('grp',this)">소그룹</button>
+      <button class="filter-btn" onclick="setFilter('p1',this)">1:1</button>
+      <button class="filter-btn" onclick="setFilter('special',this)">특강</button>
+      <input class="filter-input" id="search-input" placeholder="이름·연락처 검색" oninput="renderTable()">
+    </div>
+    <div class="table-wrap">
+      <div class="table-head">
+        <div>날짜</div><div>시간</div><div>상품</div><div>이름</div>
+        <div>연락처</div><div>금액</div><div>메모</div><div>상태</div>
+      </div>
+      <div id="table-body"><div class="loading">불러오는 중...</div></div>
+    </div>
+  </div>
+
+  <!-- 특강관리 -->
+  <div class="tab-panel" id="tp-1">
+    <div class="card-box">
+      <div style="font-size:14px;font-weight:700;color:#111;margin-bottom:14px" id="sp-form-label">✚ 새 특강 등록</div>
+      <input type="hidden" id="sp-id">
+      <div class="row-flex" style="margin-bottom:10px">
+        <div class="fld" style="flex:2;min-width:180px">
+          <label>특강 제목</label>
+          <input type="text" id="sp-title" placeholder="예) 5월 4일 일요일 접영 특강">
+        </div>
+        <div class="fld">
+          <label>날짜</label>
+          <input type="date" id="sp-date">
+        </div>
+        <div class="fld">
+          <label>정원</label>
+          <input type="number" id="sp-max" value="6" min="1" max="20" style="width:70px">
+        </div>
+        <div class="fld">
+          <label>레슨비 (만원/인당)</label>
+          <input type="number" id="sp-lesson-fee" placeholder="6" min="0" style="width:90px" oninput="calcSpPrice()">
+        </div>
+        <div class="fld">
+          <label>입장료 포함</label>
+          <select id="sp-entrance" onchange="calcSpPrice()">
+            <option value="2">2만원 포함</option>
+            <option value="0">포함 안함</option>
+          </select>
+        </div>
+        <div class="fld">
+          <label>수강료 표시 (자동생성)</label>
+          <input type="text" id="sp-price" readonly style="background:#f8f8f8;color:#555;width:220px" placeholder="레슨비 입력 시 자동생성">
+        </div>
+        <div class="fld">
+          <label>표시</label>
+          <select id="sp-visible">
+            <option value="Y">표시 (예약가능)</option>
+            <option value="N">숨김</option>
+          </select>
+        </div>
+      </div>
+      <div class="fld" style="margin-bottom:10px">
+        <label>수업 시간 선택 (복수 가능)</label>
+        <div class="time-checks" id="sp-times-check">
+          <label><input type="checkbox" value="11:00"> 11:00</label>
+          <label><input type="checkbox" value="12:00"> 12:00</label>
+          <label><input type="checkbox" value="13:00"> 13:00</label>
+          <label><input type="checkbox" value="14:00"> 14:00</label>
+          <label><input type="checkbox" value="15:00"> 15:00</label>
+          <label><input type="checkbox" value="16:00"> 16:00</label>
+        </div>
+      </div>
+      <div class="fld" style="margin-bottom:12px">
+        <label>상품 소개</label>
+        <textarea id="sp-desc" placeholder="예) 접영이 두려웠다면, 이번 특강으로 완전히 잡아드립니다!"></textarea>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn-add gray" onclick="resetSpForm()">초기화</button>
+        <button class="btn-add green" onclick="saveSpecial()">저장</button>
+      </div>
+    </div>
+    <div id="sp-list"><div class="loading">불러오는 중...</div></div>
+  </div>
+
+  <!-- 차단관리 -->
+  <div class="tab-panel" id="tp-2">
+    <div class="card-box">
+      <div style="font-size:14px;font-weight:700;color:#111;margin-bottom:14px">차단 추가</div>
+      <div class="row-flex">
+        <div class="fld">
+          <label>유형</label>
+          <select id="bl-type" onchange="toggleBlTime()">
+            <option value="date">하루 전체</option>
+            <option value="slot">특정 시간만</option>
+          </select>
+        </div>
+        <div class="fld">
+          <label>날짜</label>
+          <input type="date" id="bl-date">
+        </div>
+        <div class="fld" id="bl-time-wrap" style="display:none">
+          <label>시간</label>
+          <select id="bl-time">
+            <option value="11:00">11:00</option><option value="12:00">12:00</option>
+            <option value="13:00">13:00</option><option value="14:00">14:00</option>
+            <option value="15:00">15:00</option><option value="16:00">16:00</option>
+          </select>
+        </div>
+        <div class="fld">
+          <label>대상</label>
+          <select id="bl-prod">
+            <option value="ALL">전체</option>
+            <option value="grp-w">소그룹 평일</option><option value="grp-e">소그룹 주말</option>
+            <option value="p1-w">1:1 평일</option><option value="p1-e">1:1 주말</option>
+          </select>
+        </div>
+        <div class="fld" style="flex:1;min-width:120px">
+          <label>메모</label>
+          <input type="text" id="bl-memo" placeholder="예) 개인 일정">
+        </div>
+        <button class="btn-add red" onclick="addBlock()">차단 추가</button>
+      </div>
+    </div>
+    <div class="table-wrap" id="block-list"><div class="loading">불러오는 중...</div></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API_URL='https://script.google.com/macros/s/AKfycbx5EC97P8qtgm5FnOddpfpEBOknbT6mKFk0mTR6fbl-UlWpO-zbd-Y5wasQWW93JgonbQ/exec';
+const ADMIN_PW='whdlrtjs1!';
+const PROD={
+  'grp-w':'소그룹 평일','grp-e':'소그룹 주말',
+  'p1-w':'1:1 평일','p1-e':'1:1 주말','ALL':'전체'
+};
+
+let adminPw='', allBookings=[], allBlocks=[], allSpecials=[], curFilter='all';
+
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2800);
+}
+async function apiFetch(p){
+  const r=await fetch(API_URL+'?'+new URLSearchParams(p),{redirect:'follow'});
+  return r.json();
+}
+async function apiPost(b){
+  const r=await fetch(API_URL,{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(b)});
+  return r.json();
+}
+function cDate(v){
+  if(!v) return '-'; const s=String(v);
+  if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  try{const d=new Date(s);if(!isNaN(d))return d.toISOString().slice(0,10);}catch(e){}
+  return s.slice(0,10);
+}
+function cTime(v){
+  if(!v) return '-'; const s=String(v);
+  if(/^\d{2}:\d{2}$/.test(s)) return s;
+  try{const d=new Date(s);if(!isNaN(d))return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}catch(e){}
+  if(s.includes('T')) return s.split('T')[1].slice(0,5);
+  return s;
+}
+
+function doLogin(){
+  adminPw=document.getElementById('pw-input').value;
+  if(adminPw!==ADMIN_PW){
+    document.getElementById('login-err').style.display='block';
+    return;
+  }
+  document.getElementById('loginWrap').style.display='none';
+  document.getElementById('adminWrap').style.display='block';
+  reloadAll();
+}
+function doLogout(){
+  adminPw='';
+  document.getElementById('loginWrap').style.display='flex';
+  document.getElementById('adminWrap').style.display='none';
+  document.getElementById('pw-input').value='';
+  document.getElementById('login-err').style.display='none';
+}
+function reloadAll(){loadBookings();loadSpecials();loadBlocks();}
+
+function switchTab(n){
+  document.querySelectorAll('.admin-tab').forEach((t,i)=>t.classList.toggle('active',i===n));
+  document.querySelectorAll('.tab-panel').forEach((t,i)=>t.classList.toggle('active',i===n));
+}
+
+// 예약현황
+async function loadBookings(){
+  document.getElementById('table-body').innerHTML='<div class="loading">불러오는 중...</div>';
+  try{
+    const j=await apiFetch({action:'list',pw:adminPw});
+    if(j.error){toast('❌ '+j.error);return;}
+    allBookings=j.bookings||[];
+    updateStats(); renderTable();
+  }catch(e){
+    document.getElementById('table-body').innerHTML='<div class="empty">❌ 불러오기 실패</div>';
+  }
+}
+function updateStats(){
+  const active=allBookings.filter(b=>b.status==='예약완료');
+  document.getElementById('st-total').textContent=allBookings.length;
+  document.getElementById('st-active').textContent=active.length;
+  document.getElementById('st-cancel').textContent=allBookings.filter(b=>b.status==='취소').length;
+  const total=active.reduce((s,b)=>{const m=(b.price||'').match(/(\d+)만원/);return m?s+parseInt(m[1])*10000:s;},0);
+  document.getElementById('st-amount').textContent=total?Math.round(total/10000)+'만원':'-';
+}
+function setFilter(f,el){
+  curFilter=f;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active'); renderTable();
+}
+function renderTable(){
+  const q=(document.getElementById('search-input').value||'').toLowerCase();
+  const rows=allBookings.filter(b=>{
+    const pid=String(b.prodId||'');
+    if(curFilter==='예약완료'&&b.status!=='예약완료') return false;
+    if(curFilter==='취소'&&b.status!=='취소') return false;
+    if(curFilter==='grp'&&!pid.startsWith('grp')) return false;
+    if(curFilter==='p1'&&!pid.startsWith('p1')) return false;
+    if(curFilter==='special'&&!pid.startsWith('special')) return false;
+    if(q&&!(String(b.name).toLowerCase().includes(q)||String(b.phone).includes(q))) return false;
+    return true;
+  });
+  if(!rows.length){document.getElementById('table-body').innerHTML='<div class="empty">해당하는 예약이 없습니다</div>';return;}
+  const pl=pid=>pid.startsWith('special')?'특강':(PROD[pid]||pid);
+  document.getElementById('table-body').innerHTML=rows.map(b=>{
+    const ok=b.status==='예약완료';
+    return `<div class="table-row${ok?'':' cancelled'}">
+      <div class="cell" data-label="날짜">${cDate(b.date)}</div>
+      <div class="cell" data-label="시간">${cTime(b.time)}</div>
+      <div class="cell" data-label="상품">${pl(b.prodId)}</div>
+      <div class="cell" data-label="이름"><strong>${b.name}</strong></div>
+      <div class="cell" data-label="연락처"><a href="tel:${b.phone}" style="color:#2563eb;text-decoration:none">${b.phone}</a></div>
+      <div class="cell" data-label="금액" style="font-size:12px">${b.price||'-'}</div>
+      <div class="cell wrap" data-label="메모" style="font-size:12px;color:#888">${b.memo||'-'}</div>
+      <div class="cell" data-label="상태">
+        <span class="sbadge ${ok?'s-ok':'s-cancel'}">${b.status}</span>
+        ${ok?`<button class="btn-cancel-bk" onclick="cancelBooking('${b.id}',this)">취소처리</button>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+async function cancelBooking(id,btn){
+  if(!confirm('이 예약을 취소하시겠습니까?')) return;
+  btn.disabled=true; btn.textContent='처리중...';
+  try{
+    const j=await apiPost({action:'cancel',id,password:adminPw});
+    if(j.error){toast('❌ '+j.error);btn.disabled=false;btn.textContent='취소처리';return;}
+    toast('✅ 예약이 취소되었습니다'); await loadBookings();
+  }catch(e){toast('❌ 오류');btn.disabled=false;btn.textContent='취소처리';}
+}
+
+// 특강관리
+async function loadSpecials(){
+  document.getElementById('sp-list').innerHTML='<div class="loading">불러오는 중...</div>';
+  try{
+    const j=await apiFetch({action:'getSpecials',pw:adminPw});
+    allSpecials=j.specials||[]; renderSpecials();
+  }catch(e){document.getElementById('sp-list').innerHTML='<div class="empty">❌ 불러오기 실패</div>';}
+}
+function renderSpecials(){
+  const el=document.getElementById('sp-list');
+  if(!allSpecials.length){el.innerHTML='<div class="empty">등록된 특강이 없습니다</div>';return;}
+  el.innerHTML=allSpecials.map(s=>`
+    <div class="sp-card${s.visible==='Y'?'':' hidden-sp'}">
+      <div class="sp-title">🌟 ${s.title}<span class="vbadge ${s.visible==='Y'?'v-y':'v-n'}">${s.visible==='Y'?'표시중':'숨김'}</span></div>
+      <div class="sp-meta">
+        <span>📅 ${s.date}</span>
+        <span>⏱ ${(s.times||'').replace(/,/g,' / ')}</span>
+        <span>👥 최대 ${s.maxSlot}명</span>
+        <span>💰 ${s.price||'-'}</span>
+      </div>
+      <div class="sp-desc">${(s.description||'').replace(/\n/g,'<br>')}</div>
+      <div class="sp-actions">
+        <button class="btn-edit" onclick="editSpecial('${s.id}')">수정</button>
+        <button class="btn-toggle" onclick="toggleSpecial('${s.id}','${s.visible}')">${s.visible==='Y'?'숨기기':'표시'}</button>
+        <button class="btn-del" onclick="deleteSpecial('${s.id}')">삭제</button>
+      </div>
+    </div>`).join('');
+}
+function calcSpPrice(){
+  const lesson=parseInt(document.getElementById('sp-lesson-fee').value)||0;
+  const entrance=parseInt(document.getElementById('sp-entrance').value)||0;
+  if(!lesson){document.getElementById('sp-price').value='';return;}
+  const total=lesson+entrance;
+  const txt=entrance>0
+    ?`인당 ${total}만원 (레슨비 ${lesson}만원 + 입장료 ${entrance}만원)`
+    :`인당 ${total}만원`;
+  document.getElementById('sp-price').value=txt;
+}
+
+function editSpecial(id){
+  const s=allSpecials.find(x=>x.id===id); if(!s) return;
+  switchTab(1);
+  document.getElementById('sp-id').value=s.id;
+  document.getElementById('sp-title').value=s.title;
+  document.getElementById('sp-date').value=s.date;
+  document.getElementById('sp-max').value=s.maxSlot;
+  // 수강료 역파싱
+  const pm=(s.price||'').match(/레슨비\s*(\d+)만원/);
+  const em=(s.price||'').match(/입장료\s*(\d+)만원/);
+  if(pm){ document.getElementById('sp-lesson-fee').value=pm[1]; }
+  else { const tm=(s.price||'').match(/인당\s*(\d+)만원/); if(tm) document.getElementById('sp-lesson-fee').value=tm[1]; }
+  document.getElementById('sp-entrance').value=em?em[1]:'2';
+  calcSpPrice();
+  document.getElementById('sp-visible').value=s.visible;
+  document.getElementById('sp-desc').value=s.description||'';
+  const sel=(s.times||'').split(',').map(t=>t.trim());
+  document.querySelectorAll('#sp-times-check input').forEach(cb=>cb.checked=sel.includes(cb.value));
+  document.getElementById('sp-form-label').textContent='✏️ 특강 수정';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function resetSpForm(){
+  ['sp-id','sp-title','sp-date','sp-price','sp-desc','sp-lesson-fee'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.value='';
+  });
+  document.getElementById('sp-max').value='6';
+  document.getElementById('sp-visible').value='Y';
+  document.querySelectorAll('#sp-times-check input').forEach(cb=>cb.checked=false);
+  document.getElementById('sp-form-label').textContent='✚ 새 특강 등록';
+}
+async function saveSpecial(){
+  const id=document.getElementById('sp-id').value;
+  const title=document.getElementById('sp-title').value.trim();
+  const date=document.getElementById('sp-date').value;
+  const times=[...document.querySelectorAll('#sp-times-check input:checked')].map(c=>c.value).join(',');
+  const maxSlot=document.getElementById('sp-max').value;
+  const price=document.getElementById('sp-price').value.trim();
+  const visible=document.getElementById('sp-visible').value;
+  const description=document.getElementById('sp-desc').value.trim();
+  if(!title){toast('❌ 제목을 입력해 주세요');return;}
+  if(!date){toast('❌ 날짜를 선택해 주세요');return;}
+  if(!times){toast('❌ 시간을 하나 이상 선택해 주세요');return;}
+  try{
+    const j=await apiPost({action:id?'updateSpecial':'addSpecial',id,title,date,times,maxSlot,price,visible,description,password:adminPw});
+    if(j.error){toast('❌ '+j.error);return;}
+    toast(id?'✅ 수정되었습니다':'✅ 등록되었습니다');
+    resetSpForm(); await loadSpecials();
+  }catch(e){toast('❌ 오류: '+e.message);}
+}
+async function toggleSpecial(id,cur){
+  const s=allSpecials.find(x=>x.id===id); if(!s) return;
+  const v=cur==='Y'?'N':'Y';
+  try{
+    const j=await apiPost({action:'updateSpecial',id,title:s.title,date:s.date,times:s.times,maxSlot:s.maxSlot,price:s.price,description:s.description,visible:v,password:adminPw});
+    if(j.error){toast('❌ '+j.error);return;}
+    toast(v==='Y'?'✅ 표시합니다':'✅ 숨겼습니다'); await loadSpecials();
+  }catch(e){toast('❌ 오류');}
+}
+async function deleteSpecial(id){
+  if(!confirm('삭제하시겠습니까?')) return;
+  try{
+    const j=await apiPost({action:'removeSpecial',id,password:adminPw});
+    if(j.error){toast('❌ '+j.error);return;}
+    toast('✅ 삭제되었습니다'); await loadSpecials();
+  }catch(e){toast('❌ 오류');}
+}
+
+// 차단관리
+function toggleBlTime(){
+  document.getElementById('bl-time-wrap').style.display=
+    document.getElementById('bl-type').value==='slot'?'flex':'none';
+}
+async function loadBlocks(){
+  document.getElementById('block-list').innerHTML='<div class="loading">불러오는 중...</div>';
+  try{
+    const j=await apiFetch({action:'getBlocks',pw:adminPw});
+    allBlocks=j.blocks||[]; renderBlocks();
+  }catch(e){document.getElementById('block-list').innerHTML='<div class="empty">❌ 불러오기 실패</div>';}
+}
+function renderBlocks(){
+  const el=document.getElementById('block-list');
+  if(!allBlocks.length){el.innerHTML='<div class="empty">등록된 차단이 없습니다</div>';return;}
+  el.innerHTML=allBlocks.map(b=>`
+    <div class="block-row">
+      <span class="btag ${b.type==='date'?'tag-date':'tag-slot'}">${b.type==='date'?'하루전체':'시간차단'}</span>
+      <strong>${b.date}</strong>
+      ${b.time&&b.time!=='ALL'?`<span style="color:#888">${b.time}</span>`:''}
+      <span style="color:#2563eb;font-size:12px">${PROD[b.prodId]||b.prodId}</span>
+      ${b.memo?`<span style="color:#aaa;font-size:12px">${b.memo}</span>`:''}
+      <button class="btn-unblock" onclick="removeBlock('${b.id}',this)">해제</button>
+    </div>`).join('');
+}
+async function addBlock(){
+  const type=document.getElementById('bl-type').value;
+  const date=document.getElementById('bl-date').value;
+  const time=type==='slot'?document.getElementById('bl-time').value:'ALL';
+  const prodId=document.getElementById('bl-prod').value;
+  const memo=document.getElementById('bl-memo').value.trim();
+  if(!date){toast('❌ 날짜를 선택해 주세요');return;}
+  try{
+    const j=await apiPost({action:'addBlock',type,date,time,prodId,memo,password:adminPw});
+    if(j.error){toast('❌ '+j.error);return;}
+    toast('✅ 차단이 등록되었습니다');
+    document.getElementById('bl-date').value='';
+    document.getElementById('bl-memo').value='';
+    await loadBlocks();
+  }catch(e){toast('❌ 오류: '+e.message);}
+}
+async function removeBlock(id,btn){
+  if(!confirm('차단을 해제하시겠습니까?')) return;
+  btn.textContent='처리중...'; btn.disabled=true;
+  try{
+    const j=await apiPost({action:'removeBlock',id,password:adminPw});
+    if(j.error){toast('❌ '+j.error);btn.textContent='해제';btn.disabled=false;return;}
+    toast('✅ 차단이 해제되었습니다'); await loadBlocks();
+  }catch(e){toast('❌ 오류');btn.textContent='해제';btn.disabled=false;}
+}
+</script>
+</body>
+</html>
